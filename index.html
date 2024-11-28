@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heart Disease Risk Predictor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        form {
+            background-color: #f4f4f4;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            color: #34495e;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        #predictionResult {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .high-risk {
+            background-color: #ffdddd;
+            color: #d9534f;
+            border: 2px solid #d9534f;
+        }
+        .low-risk {
+            background-color: #deffde;
+            color: #5cb85c;
+            border: 2px solid #5cb85c;
+        }
+        #riskDetails {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Heart Disease Risk Predictor</h1>
+    <form id="predictionForm">
+        <label for="age">Age:</label>
+        <input type="number" id="age" name="age" required min="0" max="120"><br>
+
+        <label for="sex">Sex (1 = Male, 0 = Female):</label>
+        <input type="number" id="sex" name="sex" required min="0" max="1"><br>
+
+        <label for="cp">Chest Pain Type (1-4):</label>
+        <input type="number" id="cp" name="cp" required min="1" max="4"><br>
+
+        <label for="trtbps">Resting Blood Pressure:</label>
+        <input type="number" id="trtbps" name="trtbps" required min="0" max="300"><br>
+
+        <label for="chol">Cholesterol:</label>
+        <input type="number" id="chol" name="chol" required min="0" max="600"><br>
+
+        <label for="thalachh">Max Heart Rate:</label>
+        <input type="number" id="thalachh" name="thalachh" required min="0" max="250"><br>
+
+        <label for="exng">Exercise Induced Angina (1 = Yes, 0 = No):</label>
+        <input type="number" id="exng" name="exng" required min="0" max="1"><br>
+
+        <button type="button" onclick="predict()">Predict My Risk</button>
+    </form>
+
+    <div id="predictionResult"></div>
+    <div id="riskDetails"></div>
+
+    <script>
+        function predict() {
+            // Collect form data
+            var formData = {
+                age: +document.getElementById('age').value,
+                sex: +document.getElementById('sex').value,
+                cp: +document.getElementById('cp').value,
+                trtbps: +document.getElementById('trtbps').value,
+                chol: +document.getElementById('chol').value,
+                thalachh: +document.getElementById('thalachh').value,
+                exng: +document.getElementById('exng').value
+            };
+
+            // Prepare JSON data
+            var jsonData = {
+                features: [
+                    formData.age,
+                    formData.sex,
+                    formData.cp,
+                    formData.trtbps,
+                    formData.chol,
+                    formData.thalachh,
+                    formData.exng
+                ]
+            };
+
+            // Clear previous messages
+            document.getElementById('predictionResult').innerHTML = '';
+            document.getElementById('riskDetails').innerHTML = '';
+
+            // Send prediction request
+            fetch('http://localhost:5000/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(jsonData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                const predictionResult = document.getElementById('predictionResult');
+                const riskDetails = document.getElementById('riskDetails');
+
+                if (data.prediction !== undefined) {
+                    if (data.prediction === 1) {
+                        // High Risk Scenario
+                        predictionResult.innerHTML = "Prediction: High Risk";
+                        predictionResult.className = 'high-risk';
+                        riskDetails.innerHTML = `
+                            <h3>High Risk Explanation</h3>
+                            <p>Based on the input parameters, you have been identified as having a higher risk of heart disease. This does not mean you definitely have heart disease, but it suggests you should take the following steps:</p>
+                            <ul>
+                                <li>Consult with a healthcare professional for a comprehensive evaluation</li>
+                                <li>Consider a detailed cardiac health assessment</li>
+                                <li>Review your lifestyle factors such as diet, exercise, and stress management</li>
+                                <li>Monitor blood pressure, cholesterol, and other cardiac risk factors</li>
+                                <li>Discuss potential preventive strategies with your doctor</li>
+                            </ul>
+                            <p><strong>Important:</strong> This is a predictive model and should not replace professional medical advice.</p>
+                        `;
+                    } else {
+                        // Low Risk Scenario
+                        predictionResult.innerHTML = "Prediction: Low Risk";
+                        predictionResult.className = 'low-risk';
+                        riskDetails.innerHTML = `
+                            <h3>Low Risk Explanation</h3>
+                            <p>Based on the input parameters, you have been identified as having a lower risk of heart disease. However, maintaining good heart health is still important:</p>
+                            <ul>
+                                <li>Continue regular health check-ups</li>
+                                <li>Maintain a balanced diet</li>
+                                <li>Engage in regular physical activity</li>
+                                <li>Manage stress effectively</li>
+                                <li>Avoid smoking and limit alcohol consumption</li>
+                            </ul>
+                            <p><strong>Remember:</strong> A low-risk prediction is not a guarantee of perfect health.</p>
+                        `;
+                    }
+                } else if (data.error) {
+                    predictionResult.innerHTML = `Error: ${data.error}`;
+                    predictionResult.className = 'high-risk';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('predictionResult').innerHTML = `Error: ${error}`;
+                document.getElementById('predictionResult').className = 'high-risk';
+            });
+        }
+    </script>
+</body>
+</html>
